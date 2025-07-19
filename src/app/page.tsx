@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react" // Import useRef
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DrawHistory } from "@/components/lucky-six/DrawHistory"
 import { LiveDraw } from "@/components/lucky-six/LiveDraw"
 import type { Draw } from "@/lib/types"
@@ -36,7 +36,7 @@ export default function Home() {
       const data = await response.json()
       setCurrentDraw(data.currentDraw)
       setHistory(data.history)
-      setTimeToNextDraw(data.timeToNextDraw)
+      setTimeToNextDraw(data.timeToNextDraw) // This will reset the timer
       setDrawInterval(data.drawInterval)
       setKey(Date.now()) // Force re-render of LiveDraw to trigger animation
     } catch (err) {
@@ -61,8 +61,8 @@ export default function Home() {
         // When a new draw comes in, fetch all data again to re-sync
         // Adding a small delay to ensure the database has committed the transaction
         setTimeout(() => {
-          fetchInitialData()
-        }, 500) // Reduced delay, 1000ms might be too long if it causes a visual lag
+          fetchInitialData() // This is the primary trigger for data refresh
+        }, 500)
       })
       .subscribe()
 
@@ -78,15 +78,10 @@ export default function Home() {
 
     const countdownInterval = setInterval(() => {
       setTimeToNextDraw((prevTime) => {
-        if (prevTime > 0) {
-          // Change condition to > 0
-          return prevTime - 1
-        }
-        // If prevTime is 0 or less, it means the countdown has finished.
-        // Trigger a fetch to get the next draw.
-        // The fetchInitialData will update timeToNextDraw, resetting the timer.
-        fetchInitialData()
-        return 0 // Keep at 0 until fetchInitialData updates it
+        // The timer now ONLY decrements.
+        // It does NOT trigger fetchInitialData().
+        // The timeToNextDraw will be reset by fetchInitialData() when a Realtime event occurs.
+        return Math.max(0, prevTime - 1)
       })
     }, 1000)
 
@@ -94,7 +89,7 @@ export default function Home() {
     return () => {
       clearInterval(countdownInterval)
     }
-  }, [isLoading, fetchInitialData]) // Dependencies: isLoading (to start/stop timer), fetchInitialData (stable function)
+  }, [isLoading]) // Dependencies: isLoading (to start/stop timer). fetchInitialData is removed.
 
   return (
     <main
